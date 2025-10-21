@@ -1,23 +1,38 @@
-const express = require('express');
+import express, { Request, Response } from 'express';
 
-const createApp = () => {
+interface Task {
+  id: number;
+  title: string;
+  description: string;
+  completed: boolean;
+}
+
+interface CreateTaskPayload {
+  title?: unknown;
+  description?: unknown;
+  completed?: unknown;
+}
+
+interface UpdateTaskPayload extends CreateTaskPayload {}
+
+const createApp = (): express.Application => {
   const app = express();
   app.use(express.json());
 
-  // In-memory store scoped to a single app instance.
-  const tasks = new Map();
+  // In-memory store scoped to this app instance; restarting wipes state.
+  const tasks = new Map<number, Task>();
   let nextId = 1;
 
-  const parseId = (rawId) => {
+  const parseId = (rawId: string): number | null => {
     const id = Number.parseInt(rawId, 10);
     return Number.isInteger(id) && id > 0 ? id : null;
   };
 
-  app.get('/tasks', (req, res) => {
+  app.get('/tasks', (_req: Request, res: Response<Task[]>) => {
     res.json(Array.from(tasks.values()));
   });
 
-  app.get('/tasks/:id', (req, res) => {
+  app.get('/tasks/:id', (req: Request<{ id: string }>, res: Response<Task | { error: string }>) => {
     const id = parseId(req.params.id);
     if (!id) {
       return res.status(400).json({ error: 'Task id must be a positive integer.' });
@@ -28,11 +43,11 @@ const createApp = () => {
       return res.status(404).json({ error: 'Task not found.' });
     }
 
-    res.json(task);
+    return res.json(task);
   });
 
-  app.post('/tasks', (req, res) => {
-    const { title, description, completed } = req.body || {};
+  app.post('/tasks', (req: Request, res: Response<Task | { error: string }>) => {
+    const { title, description, completed } = req.body as CreateTaskPayload;
 
     if (typeof title !== 'string' || title.trim() === '') {
       return res.status(400).json({ error: 'Task title is required.' });
@@ -46,18 +61,21 @@ const createApp = () => {
       return res.status(400).json({ error: 'Task completed flag must be boolean when provided.' });
     }
 
-    const task = {
+    const normalizedDescription = typeof description === 'string' ? description.trim() : '';
+    const normalizedCompleted = typeof completed === 'boolean' ? completed : false;
+
+    const task: Task = {
       id: nextId++,
       title: title.trim(),
-      description: description ? description.trim() : '',
-      completed: completed ?? false,
+      description: normalizedDescription,
+      completed: normalizedCompleted,
     };
 
     tasks.set(task.id, task);
-    res.status(201).json(task);
+    return res.status(201).json(task);
   });
 
-  app.put('/tasks/:id', (req, res) => {
+  app.put('/tasks/:id', (req: Request<{ id: string }>, res: Response<Task | { error: string }>) => {
     const id = parseId(req.params.id);
     if (!id) {
       return res.status(400).json({ error: 'Task id must be a positive integer.' });
@@ -68,7 +86,7 @@ const createApp = () => {
       return res.status(404).json({ error: 'Task not found.' });
     }
 
-    const { title, description, completed } = req.body || {};
+    const { title, description, completed } = req.body as UpdateTaskPayload;
     const hasUpdatableField =
       title !== undefined || description !== undefined || completed !== undefined;
 
@@ -98,10 +116,10 @@ const createApp = () => {
     }
 
     tasks.set(id, existing);
-    res.json(existing);
+    return res.json(existing);
   });
 
-  app.delete('/tasks/:id', (req, res) => {
+  app.delete('/tasks/:id', (req: Request<{ id: string }>, res: Response<void | { error: string }>) => {
     const id = parseId(req.params.id);
     if (!id) {
       return res.status(400).json({ error: 'Task id must be a positive integer.' });
@@ -112,10 +130,10 @@ const createApp = () => {
     }
 
     tasks.delete(id);
-    res.status(204).send();
+    return res.status(204).send();
   });
 
   return app;
 };
 
-module.exports = { createApp };
+export { createApp, Task };

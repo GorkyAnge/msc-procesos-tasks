@@ -1,15 +1,16 @@
 # Tasks Microservice
 
-A lightweight in-memory tasks microservice built with Express.js. The service exposes CRUD endpoints to manage tasks without any external persistence layer.
+A lightweight in-memory tasks microservice built with Express.js and TypeScript. The service exposes CRUD endpoints to manage tasks without any external persistence layer.
 
 ## Getting Started
 
 ```bash
 npm install
+npm run build
 npm start
 ```
 
-By default the server listens on `http://localhost:3000`. Set the `PORT` environment variable to override the port.
+`npm start` recompiles the TypeScript sources before launching the compiled server from `dist/`. By default the server listens on `http://localhost:3000`. Set the `PORT` environment variable to override the port.
 
 ## API Endpoints
 
@@ -55,7 +56,7 @@ All endpoints emit and accept JSON. Task payloads use the following shape:
 
 ## Testing
 
-Run the Jest test suite (uses Supertest for HTTP assertions):
+Run the Jest test suite (uses ts-jest and Supertest for HTTP assertions):
 
 ```bash
 npm test
