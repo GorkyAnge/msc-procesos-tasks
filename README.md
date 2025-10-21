@@ -62,6 +62,12 @@ Run the Jest test suite (uses ts-jest and Supertest for HTTP assertions):
 npm test
 ```
 
+Run ESLint checks:
+
+```bash
+npm run lint
+```
+
 ## Notes
 
 - Data is stored in memory per process; restarting the service clears all tasks.
