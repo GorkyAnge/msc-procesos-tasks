@@ -4,60 +4,43 @@ version: 2.1
 # -----------------
 # Orbs (Librerías externas)
 # -----------------
-# Usamos el orb de Node para manejo de caché y el orb de Slack para notificaciones.
 orbs:
   node: circleci/node@5.1.0
-  slack: circleci/slack@4 # Corregido: Usar la versión principal (@4) para evitar errores de versiones específicas
+  slack: circleci/slack@4 # Orb de Slack (actualmente sin usar)
+
 # -----------------
 # Jobs: La unidad de trabajo de CircleCI
 # -----------------
 jobs:
   # 1. SETUP & INSTALL (Checkout + Install Dependencies)
   setup-and-install:
-    # Usamos una imagen de Node de CircleCI con soporte Linux (sustituye a la dependencia de 'agent any' y 'bat')
     docker:
-      - image: cimg/node:20.11 # Se recomienda usar una versión LTS de Node
-
+      - image: cimg/node:20.11 # Imagen LTS de Node.js recomendada
     steps:
-      - checkout # Equivalente a 'git' en Jenkins, usa credenciales configuradas en CircleCI
-
-      # Uso del Orb de Node para manejar la caché de npm de forma eficiente (similar a options { timestamps() })
-      # CORRECCIÓN: Eliminado 'cache-key' ya que no es un argumento esperado por este comando del Orb.
+      - checkout
       - node/install-packages
-
-      # Persistimos los archivos necesarios (el código fuente y node_modules) para que el siguiente job pueda acceder a ellos
       - persist_to_workspace:
           root: .
           paths:
             - node_modules
             - .
 
-  # 2. BUILD, TEST & LINT (Jobs secuenciales)
+  # 2. BUILD, TEST & LINT
   test-and-lint:
     docker:
       - image: cimg/node:20.11
-
     steps:
-      # Adjuntamos el código y las dependencias instaladas del job anterior
       - attach_workspace:
           at: .
-
-      # 2.1 Build (npm run build)
       - run:
           name: Run Build
           command: npm run build
-
-      # 2.2 Test (npm test)
       - run:
           name: Run Tests
           command: npm test
-
-      # 2.3 Lint (npm run lint)
       - run:
           name: Run Lint
           command: npm run lint
-
-      # Persistimos la carpeta 'dist' generada en el build para usarla en el deploy
       - persist_to_workspace:
           root: .
           paths:
@@ -66,27 +49,18 @@ jobs:
   # 3. DEPLOY (Simulación del despliegue)
   deploy-simulate:
     docker:
-      - image: cimg/base:2024.01 # Un contenedor base para simular la acción de despliegue
-
+      - image: cimg/base:2024.01
     steps:
-      # Adjuntamos los artefactos (código y dist)
       - attach_workspace:
           at: .
-
-      # NOTA IMPORTANTE: La lógica de PowerShell no se puede replicar
-      # directamente en un entorno Linux. Simulamos la acción de 'despliegue'
-      # simplemente archivando la carpeta 'dist' como artefacto de CircleCI.
       - run:
           name: Simulate Deployment
           command: |
             echo "--- Inicio de Simulación de Despliegue ---"
-            echo "Archivos listos para despliegue encontrados en 'dist/'."
+            echo "Archivos listos para despliegue encontrados en 'dist/'"
             echo "En un entorno real, esta etapa ejecutaría un script de despliegue SSH o a un servicio cloud."
-            # Simulación de copia de archivos a un destino remoto:
             ls -l dist
             echo "--- Fin de Simulación ---"
-
-      # Guardamos los artefactos generados para que puedan ser descargados desde la interfaz de CircleCI
       - store_artifacts:
           path: dist
           destination: build-artifacts
@@ -97,27 +71,20 @@ jobs:
 workflows:
   build-test-deploy:
     jobs:
-      # 1. Ejecutar instalación de dependencias
       - setup-and-install
-
-      # 2. Ejecutar pruebas y lint, solo si la instalación fue exitosa
       - test-and-lint:
           requires:
             - setup-and-install
-
-      # 3. Simular despliegue, solo si las pruebas y lint fueron exitosos
       - deploy-simulate:
           requires:
             - test-and-lint
-          # Agregar notificaciones específicas para éxito/fracaso
-          post-steps:
-            - slack/notify: # Notificación de Éxito
-                event: pass
-                # Reemplaza el canal con el destino real de Slack (por ejemplo, #ci-notificaciones)
-                channel: "#circleci-alerts"
-                template: success_with_artifacts
-            - slack/notify: # Notificación de Fallo
-                event: fail
-                # Reemplaza el canal con el destino real de Slack
-                channel: "#circleci-alerts"
-                template: basic_fail
+          # Comentamos las notificaciones de Slack hasta tener las variables configuradas
+          # post-steps:
+          #   - slack/notify: # Notificación de Éxito
+          #       event: pass
+          #       channel: "#circleci-alerts"
+          #       template: success_with_artifacts
+          #   - slack/notify: # Notificación de Fallo
+          #       event: fail
+          #       channel: "#circleci-alerts"
+          #       template: basic_fail
