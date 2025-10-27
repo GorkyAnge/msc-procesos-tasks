@@ -7,8 +7,7 @@ version: 2.1
 # Usamos el orb de Node para manejo de caché y el orb de Slack para notificaciones.
 orbs:
   node: circleci/node@5.1.0
-  slack: circleci/slack@4.13.0 # Necesario para las notificaciones
-
+  slack: circleci/slack@4 # Corregido: Usar la versión principal (@4) para evitar errores de versiones específicas
 # -----------------
 # Jobs: La unidad de trabajo de CircleCI
 # -----------------
