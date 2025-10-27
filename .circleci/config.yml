@@ -6,16 +6,16 @@ version: 2.1
 # -----------------
 orbs:
   node: circleci/node@5.1.0
-  slack: circleci/slack@4 # Orb de Slack (actualmente sin usar)
+  slack: circleci/slack@4
 
 # -----------------
-# Jobs: La unidad de trabajo de CircleCI
+# Jobs
 # -----------------
 jobs:
-  # 1. SETUP & INSTALL (Checkout + Install Dependencies)
+  # 1. SETUP & INSTALL
   setup-and-install:
     docker:
-      - image: cimg/node:20.11 # Imagen LTS de Node.js recomendada
+      - image: cimg/node:20.11
     steps:
       - checkout
       - node/install-packages
@@ -53,6 +53,18 @@ jobs:
     steps:
       - attach_workspace:
           at: .
+
+      # 🔍 Validación de Slack antes de ejecutar las notificaciones
+      - run:
+          name: Validate Slack Setup
+          command: |
+            if [ -z "$SLACK_ACCESS_TOKEN" ] && [ -z "$SLACK_WEBHOOK_URL" ]; then
+              echo "⚠️  No Slack credentials found. Notifications will be skipped."
+            else
+              echo "✅ Slack credentials detected."
+            fi
+
+      # 💬 Simulación del despliegue
       - run:
           name: Simulate Deployment
           command: |
@@ -61,12 +73,14 @@ jobs:
             echo "En un entorno real, esta etapa ejecutaría un script de despliegue SSH o a un servicio cloud."
             ls -l dist
             echo "--- Fin de Simulación ---"
+
+      # 📦 Guarda los artefactos
       - store_artifacts:
           path: dist
           destination: build-artifacts
 
 # -----------------
-# Workflows: Define la lógica y secuencia de los jobs
+# Workflows
 # -----------------
 workflows:
   build-test-deploy:
@@ -78,13 +92,15 @@ workflows:
       - deploy-simulate:
           requires:
             - test-and-lint
-          # Comentamos las notificaciones de Slack hasta tener las variables configuradas
-          # post-steps:
-          #   - slack/notify: # Notificación de Éxito
-          #       event: pass
-          #       channel: "#circleci-alerts"
-          #       template: success_with_artifacts
-          #   - slack/notify: # Notificación de Fallo
-          #       event: fail
-          #       channel: "#circleci-alerts"
-          #       template: basic_fail
+          post-steps:
+            # ✅ Notificación de Éxito
+            - slack/notify:
+                event: pass
+                channel: "#circleci-alerts" # 🔁 Cambia por el canal real de tu Slack
+                template: success_with_artifacts
+
+            # ⚠️ Notificación de Fallo
+            - slack/notify:
+                event: fail
+                channel: "#circleci-alerts"
+                template: basic_fail
