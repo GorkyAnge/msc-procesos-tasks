@@ -22,8 +22,8 @@ jobs:
       - checkout # Equivalente a 'git' en Jenkins, usa credenciales configuradas en CircleCI
 
       # Uso del Orb de Node para manejar la caché de npm de forma eficiente (similar a options { timestamps() })
-      - node/install-packages:
-          cache-key: v1-dependencies-{{ .Branch }} # Crea una clave de caché por rama
+      # CORRECCIÓN: Eliminado 'cache-key' ya que no es un argumento esperado por este comando del Orb.
+      - node/install-packages
 
       # Persistimos los archivos necesarios (el código fuente y node_modules) para que el siguiente job pueda acceder a ellos
       - persist_to_workspace:
@@ -119,5 +119,5 @@ workflows:
             - slack/notify: # Notificación de Fallo
                 event: fail
                 # Reemplaza el canal con el destino real de Slack
-                channel: "#ci-alerts"
+                channel: "#circleci-alerts"
                 template: basic_fail
